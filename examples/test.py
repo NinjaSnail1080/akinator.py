@@ -1,11 +1,18 @@
 """A simple test of the Akinator class"""
 
 import akinator
+
 aki = akinator.Akinator()
 
 
 def main():
-    q = aki.start_game()
+    try:
+        q = aki.start_game("en")
+    except akinator.AkiServerDown:
+        try:
+            q = aki.start_game("en2")
+        except akinator.AkiServerDown:
+            q = aki.start_game("en3")
     while aki.progression <= 85:
         a = input(q + "\n\t")
         if a == "b":

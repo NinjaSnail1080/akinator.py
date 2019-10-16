@@ -60,6 +60,8 @@ def get_region(lang=None):
         return "srv13.akinator.com:9196"
     elif lang == "en2":
         return "srv6.akinator.com:9126"
+    elif lang == "en3":
+        return "srv11.akinator.com:9152"
     elif lang == "ar" or lang == "arabic":
         return "srv2.akinator.com:9155"
     elif lang == "cn" or lang == "chinese":

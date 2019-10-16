@@ -23,18 +23,19 @@ SOFTWARE.
 """
 
 from .utils import ans_to_id, get_region, raise_connection_error
-from .exceptions import CantGoBackAnyFurther
+from .exceptions import CantGoBackAnyFurther, InvalidAnswerError
 import re
-try:
-    import requests
-except ImportError:
-    pass
+import time
+import json
+import requests
 
-#* URLs for the API requests
-NEW_SESSION_URL = "https://{}/ws/new_session?partner=1&player=website-desktop&uid_ext_session={}&frontaddr={}&constraint=ETAT%%3C%%3E%%27AV%%27&constraint=ETAT<>'AV'"
-ANSWER_URL = "https://{}/ws/answer?callback=&session={}&signature={}&step={}&answer={}"
-BACK_URL = "https://{}/ws/answer?callback=&session={}&signature={}&step={}&answer=-1"
-WIN_URL = "https://{}/ws/list?callback=&session={}&signature={}&step={}"
+# URLs for the API requests
+NEW_SESSION_URL = "https://{}/ws/new_session?callback=jQuery331005089254861332693_{" \
+                  "}&partner=1&player=website-desktop&uid_ext_session={}&frontaddr={" \
+                  "}&constraint=ETAT%%3C%%3E%%27AV%%27&constraint=ETAT<>'AV' "
+ANSWER_URL = "https://{}/ws/answer?callback=jQuery331005089254861332693_%{}&session={}&signature={}&step={}&answer={}"
+BACK_URL = "https://{}/ws/list?callback=jQuery331005089254861332693_{}&session={}&signature={}&step={}&answer=-1"
+WIN_URL = "https://{}/ws/list?callback=jQuery331005089254861332693_{}&session={}&signature={}&step={}"
 
 
 class Akinator():
@@ -48,6 +49,7 @@ class Akinator():
         self.signature = None
         self.uid = None
         self.frontaddr = None
+        self.timestamp = None
 
         self.question = None
         self.progression = None
@@ -67,6 +69,10 @@ class Akinator():
             self.progression = float(resp["parameters"]["progression"])
             self.step = int(resp["parameters"]["step"])
 
+    @staticmethod
+    def _parse_response(response):
+        return json.loads(",".join(response.split("(")[1::])[:-1])
+
     def _get_session_info(self):
         """Get uid and frontaddr from akinator.com/game"""
 
@@ -82,6 +88,7 @@ class Akinator():
         The "language" parameter can be left as None for English, the default language, or it can be set to one of these:
             - "en": English
             - "en2": Second English server. Use if the main one is down
+            - "en3": Third English server
             - "ar": Arabic
             - "cn": Chinese
             - "de": German
@@ -101,9 +108,9 @@ class Akinator():
         """
         self.server = get_region(language)
         self._get_session_info()
-
-        r = requests.get(NEW_SESSION_URL.format(self.server, self.uid, self.frontaddr))
-        resp = r.json()
+        self.timestamp = int(time.time() * 1000)
+        r = requests.get(NEW_SESSION_URL.format(self.server, self.timestamp, self.uid, self.frontaddr))
+        resp = self._parse_response(r.text)
 
         if resp["completion"] == "OK":
             self._update(resp, True)
@@ -137,8 +144,8 @@ class Akinator():
         else:
             ans = ans_to_id(ans)
 
-        r = requests.get(ANSWER_URL.format(self.server, self.session, self.signature, self.step, ans))
-        resp = r.json()
+        r = requests.get(ANSWER_URL.format(self.server, self.timestamp, self.session, self.signature, self.step, ans))
+        resp = self._parse_response(r.text)
 
         if resp["completion"] == "OK":
             self._update(resp)
@@ -155,8 +162,8 @@ class Akinator():
             raise CantGoBackAnyFurther(
                 "You were on the first question and couldn't go back any further")
 
-        r = requests.get(BACK_URL.format(self.server, self.session, self.signature, self.step))
-        resp = r.json()
+        r = requests.get(BACK_URL.format(self.server, self.timestamp, self.session, self.signature, self.step))
+        resp = self._parse_response(r.text)
 
         if resp["completion"] == "OK":
             self._update(resp)
@@ -176,8 +183,8 @@ class Akinator():
 
         It's recommended that you call this function when Aki's progression is above 85%. You can get his current progression via "Akinator.progression"
         """
-        r = requests.get(WIN_URL.format(self.server, self.session, self.signature, self.step))
-        resp = r.json()
+        r = requests.get(WIN_URL.format(self.server, self.timestamp, self.session, self.signature, self.step))
+        resp = self._parse_response(r.text)
 
         if resp["completion"] == "OK":
             guess = resp["parameters"]["elements"][0]["element"]
