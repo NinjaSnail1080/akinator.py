@@ -56,29 +56,33 @@ Quick Examples
 Here's a quick little example of the library being used to make a simple, text-based Akinator game:
 
 .. code-block:: python
+    try:
+        import akinator
+    except ImportError:
+        import os
+        os.system('python3 -m pip install -U akinator.py')
+        import akinator
 
-  import akinator
+    q = aki.start_game()
 
-  aki = akinator.Akinator()
+    while aki.progression <= 80:
+        print(q)
+        a = str(input('> '))
+        if a == "b":
+            try:
+                q = aki.back()
+            except akinator.CantGoBackAnyFurther:
+                pass
+        else:
+            q = aki.answer(a)
+    aki.win()
 
-  q = aki.start_game()
-
-  while aki.progression <= 80:
-      a = input(q + "\n\t")
-      if a == "b":
-          try:
-              q = aki.back()
-          except akinator.CantGoBackAnyFurther:
-              pass
-      else:
-          q = aki.answer(a)
-  aki.win()
-
-  correct = input(f"It's {aki.first_guess['name']} ({aki.first_guess['description']})! Was I correct?\n{aki.first_guess['absolute_picture_path']}\n\t")
-  if correct.lower() == "yes" or correct.lower() == "y":
-      print("Yay\n")
-  else:
-      print("Oof\n")
+    print(f"It's {aki.first_guess['name']} ({aki.first_guess['description']})! Was I correct?\n{aki.first_guess['absolute_picture_path']}")
+    correct = str(input('> '))
+    if correct.lower() == "yes" or correct.lower() == "y":
+        print("Yay\n")
+    else:
+        print("Oof\n")
 
 Here's the same game as above, but using the async version of the library instead:
 
